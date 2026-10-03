@@ -4,52 +4,30 @@ import OpenConnectKit
 @Observable
 @MainActor
 final class AppModel {
-  let session: VpnSession
-  let handler: VpnHandler
+  /// Publishes the session's authentication and certificate prompts for the views.
+  let prompts = VPNPrompts()
+  let session: VPNSession
 
   var serverURL: String = "https://"
-  var selectedProtocol: VpnProtocol = .anyConnect
+  var selectedProtocol: VPNProtocol = .anyConnect
   var logLevel: LogLevel = .info
 
   init() {
-    let handler = VpnHandler()
-    self.handler = handler
-    self.session = VpnSession(delegate: handler)
+    self.session = VPNSession(delegate: prompts)
   }
 
   // MARK: - Computed State
 
   var canConnect: Bool {
-    if case .disconnected = session.status {
-      return !serverURL.isEmpty
-    }
-    return false
+    !session.status.isActive && !serverURL.isEmpty
   }
 
   var canDisconnect: Bool {
     switch session.status {
     case .connected, .connecting, .reconnecting:
       return true
-    default:
+    case .disconnected, .disconnecting:
       return false
-    }
-  }
-
-  var statusText: String {
-    switch session.status {
-    case .disconnected(let error):
-      if let error {
-        return "Disconnected: \(error.localizedDescription)"
-      }
-      return "Disconnected"
-    case .connecting(let stage):
-      return stage
-    case .connected:
-      return "Connected"
-    case .disconnecting:
-      return "Disconnecting..."
-    case .reconnecting:
-      return "Reconnecting..."
     }
   }
 
@@ -57,19 +35,19 @@ final class AppModel {
 
   func connect() async {
     guard let url = URL(string: serverURL) else { return }
-    let config = VpnConfiguration(
+    let config = VPNConfiguration(
       serverURL: url,
       vpnProtocol: selectedProtocol,
       logLevel: logLevel
     )
     do {
-      try await session.connect(configuration: config)
+      try await session.connect(using: config)
     } catch {
-      // Error is reflected in session.status
+      // The error is also kept in session.lastError, which StatusView shows.
     }
   }
 
-  func disconnect() {
-    session.disconnect()
+  func disconnect() async {
+    await session.disconnect()
   }
 }

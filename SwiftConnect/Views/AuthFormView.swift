@@ -18,8 +18,8 @@ struct AuthFormView: View {
 
   var body: some View {
     VStack(spacing: 16) {
-      if let title = form.title {
-        Text(title)
+      if let banner = form.banner {
+        Text(banner)
           .font(.headline)
       }
 
@@ -27,6 +27,12 @@ struct AuthFormView: View {
         Text(message)
           .font(.subheadline)
           .foregroundStyle(.secondary)
+      }
+
+      if let error = form.error {
+        Text(error)
+          .font(.subheadline)
+          .foregroundStyle(.red)
       }
 
       Form {
@@ -51,17 +57,24 @@ struct AuthFormView: View {
   @ViewBuilder
   private func fieldView(for index: Int) -> some View {
     let field = form.fields[index]
-    switch field.type {
+    switch field.kind {
     case .hidden:
       EmptyView()
     case .password:
       SecureField(field.label, text: $form.fields[index].value)
     case .text:
       TextField(field.label, text: $form.fields[index].value)
-    case .select(let options):
+    case .select(let choices):
       Picker(field.label, selection: $form.fields[index].value) {
-        ForEach(options, id: \.self) { option in
-          Text(option).tag(option)
+        ForEach(choices, id: \.value) { choice in
+          Text(choice.label).tag(choice.value)
+        }
+      }
+      .onChange(of: form.fields[index].value) {
+        // A different group can need different fields: submit now, and the server sends that
+        // group's form as the next prompt.
+        if field.isAuthGroup {
+          onSubmit(form)
         }
       }
     }

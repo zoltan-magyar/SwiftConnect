@@ -24,33 +24,22 @@ struct ContentView: View {
         logEntries.append(entry)
       }
     }
-    .sheet(
-      isPresented: .init(
-        get: { model.handler.pendingAuthForm != nil },
-        set: { if !$0 { model.handler.cancelAuth() } }
-      )
-    ) {
-      if let form = model.handler.pendingAuthForm {
-        AuthFormView(form: form) { filledForm in
-          model.handler.submitAuth(filledForm)
-        } onCancel: {
-          model.handler.cancelAuth()
-        }
+    .sheet(item: Bindable(model.prompts).pendingAuthentication) { prompt in
+      AuthFormView(form: prompt.form) { filledForm in
+        model.prompts.submit(filledForm)
+      } onCancel: {
+        model.prompts.cancelAuthentication()
       }
     }
     .alert(
       "Certificate Validation",
-      isPresented: .init(
-        get: { model.handler.pendingCertInfo != nil },
-        set: { if !$0 { model.handler.rejectCertificate() } }
-      )
-    ) {
-      Button("Accept") { model.handler.acceptCertificate() }
-      Button("Reject", role: .cancel) { model.handler.rejectCertificate() }
-    } message: {
-      if let info = model.handler.pendingCertInfo {
-        Text(info.reason)
-      }
+      isPresented: Bindable(model.prompts).isCertificatePending,
+      presenting: model.prompts.pendingCertificate
+    ) { _ in
+      Button("Accept") { model.prompts.acceptCertificate() }
+      Button("Reject", role: .cancel) { model.prompts.rejectCertificate() }
+    } message: { prompt in
+      Text("\(prompt.certificate.hostname ?? "The server"): \(prompt.certificate.reason)")
     }
   }
 }
