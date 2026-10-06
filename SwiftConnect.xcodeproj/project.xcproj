@@ -10,6 +10,12 @@
       "Base",
     ],
   },
+  "packages": [
+    {
+      "kind": "local",
+      "path": "../OpenConnectKit",
+    },
+  ],
   "files": [
     { "kind": "folder", "path": "SwiftConnect", "target-membership": [ "SwiftConnect" ] },
     {
@@ -30,6 +36,12 @@
         "compile-sources",
         "frameworks",
         "resources",
+      ],
+      "package-product-members": [
+        {
+          "product-name": "OpenConnectKit",
+          "build-phase": { "build-phase": "frameworks" },
+        },
       ],
       "build-settings": {
         "AUTOMATION_APPLE_EVENTS": "NO",
