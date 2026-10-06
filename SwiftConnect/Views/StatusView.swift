@@ -2,7 +2,7 @@ import OpenConnectKit
 import SwiftUI
 
 struct StatusView: View {
-  var session: VpnSession
+  var session: VPNSession
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -12,7 +12,7 @@ struct StatusView: View {
           .font(.headline)
       }
 
-      if let ifname = session.interfaceName {
+      if let ifname = session.status.connectionInfo?.interfaceName {
         LabeledContent("Interface", value: ifname)
           .font(.subheadline)
       }
@@ -20,11 +20,11 @@ struct StatusView: View {
       if let stats = session.stats {
         HStack(spacing: 24) {
           Label(
-            "\(stats.formattedTxBytes) (\(stats.txPackets) pkts)",
+            "\(byteCount(stats.txBytes)) (\(stats.txPackets) pkts)",
             systemImage: "arrow.up"
           )
           Label(
-            "\(stats.formattedRxBytes) (\(stats.rxPackets) pkts)",
+            "\(byteCount(stats.rxBytes)) (\(stats.rxPackets) pkts)",
             systemImage: "arrow.down"
           )
         }
@@ -32,6 +32,10 @@ struct StatusView: View {
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  private func byteCount(_ bytes: UInt64) -> String {
+    Int64(clamping: bytes).formatted(.byteCount(style: .binary))
   }
 
   private var statusIndicator: some View {
@@ -48,26 +52,37 @@ struct StatusView: View {
       .orange
     case .disconnecting:
       .yellow
-    case .disconnected(let error):
-      error != nil ? .red : .gray
+    case .disconnected:
+      session.lastError != nil ? .red : .gray
     }
   }
 
   private var statusText: String {
     switch session.status {
-    case .disconnected(let error):
-      if let error {
+    case .disconnected:
+      if let error = session.lastError {
         return "Disconnected: \(error.localizedDescription)"
       }
       return "Disconnected"
     case .connecting(let stage):
-      return stage
+      return stage.displayText
     case .connected:
       return "Connected"
     case .disconnecting:
       return "Disconnecting..."
     case .reconnecting:
       return "Reconnecting..."
+    }
+  }
+}
+
+extension ConnectionStage {
+  fileprivate var displayText: String {
+    switch self {
+    case .authenticating: "Authenticating..."
+    case .establishingTunnel: "Establishing the tunnel..."
+    case .settingUpDTLS: "Setting up DTLS..."
+    case .configuringNetwork: "Configuring the network..."
     }
   }
 }

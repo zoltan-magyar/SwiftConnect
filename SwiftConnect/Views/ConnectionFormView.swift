@@ -11,8 +11,8 @@ struct ConnectionFormView: View {
 
       HStack {
         Picker("Protocol", selection: $model.selectedProtocol) {
-          ForEach(VpnProtocol.allCases, id: \.self) { proto in
-            Text(proto.rawValue).tag(proto)
+          ForEach(VPNProtocol.allCases, id: \.self) { proto in
+            Text(proto.displayName).tag(proto)
           }
         }
         .frame(maxWidth: 200)
@@ -36,7 +36,7 @@ struct ConnectionFormView: View {
 
         if model.canDisconnect {
           Button("Disconnect") {
-            model.disconnect()
+            Task { await model.disconnect() }
           }
           .keyboardShortcut(.escape, modifiers: .command)
         }
