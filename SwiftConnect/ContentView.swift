@@ -39,7 +39,9 @@ struct ContentView: View {
       Button("Accept") { model.prompts.acceptCertificate() }
       Button("Reject", role: .cancel) { model.prompts.rejectCertificate() }
     } message: { prompt in
-      Text("\(prompt.certificate.hostname ?? "The server"): \(prompt.certificate.reason)")
+      // The system's reason already names the host, e.g. "“vpn.example.com” certificate is not
+      // trusted".
+      Text(prompt.reason)
     }
   }
 }
